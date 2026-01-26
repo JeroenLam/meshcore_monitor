@@ -43,7 +43,7 @@ async def handle_contact_msg_recv(event):
     contact = mc.get_contact_by_key_prefix(event.payload["pubkey_prefix"])
     event.payload["user"] = contact["adv_name"]
     event.payload["message"] = event.payload["text"]
-    event = _add_contact_to_event(event, contact)
+    event = await _add_contact_to_event(event, contact)
     await _handle_event(event, "CONTACT_MSG_RECV")
 
 
@@ -51,7 +51,7 @@ async def handle_channel_msg_recv(event):
     event.payload["user"] = event.payload["text"].split(":", 1)[0].strip()
     contact = mc.get_contact_by_name(event.payload["user"])
     event.payload["message"] = event.payload["text"].split(":", 1)[1].strip()
-    event = _add_contact_to_event(event, contact)
+    event = await _add_contact_to_event(event, contact)
     await _handle_event(event, "CHANNEL_MSG_RECV")
 
 
