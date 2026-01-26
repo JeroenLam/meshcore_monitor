@@ -59,7 +59,10 @@ async def handle_new_contact(event):
 
 async def handle_contact_msg_recv(event):
     contact = mc.get_contact_by_key_prefix(event.payload["pubkey_prefix"])
-    event.payload["user"] = contact["adv_name"]
+    try:
+        event.payload["user"] = contact["adv_name"]
+    except:
+        event.payload["user"] = "unkown"
     event.payload["message"] = event.payload["text"]
     event = await _add_contact_to_event(event, contact)
     await _handle_event(event, "CONTACT_MSG_RECV")
