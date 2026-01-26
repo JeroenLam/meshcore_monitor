@@ -15,6 +15,9 @@ ES_INDEX = os.getenv("ES_INDEX", "meshcore")
 MC_HOST = os.getenv("MC_HOST", "192.168.1.225")
 MC_PORT = int(os.getenv("MC_PORT", "5000"))
 
+mc: MeshCore
+es: AsyncElasticsearch
+
 
 # --- shared helper ---
 async def _handle_event(event, et: str):
@@ -26,6 +29,25 @@ async def _handle_event(event, et: str):
         index=ES_INDEX,
         document=data,
     )
+
+
+async def get_contacts(client: MeshCore) -> dict[str, dict[str, str]]:
+    # Get your contacts
+    result = await client.commands.get_contacts()
+    if result.type == EventType.ERROR:
+        raise Exception(f"Error getting contacts: {result.payload}")
+
+    return result.payload
+
+
+async def get_contacts_by_prefix(prefix):
+    contacts = await get_contacts(mc)
+    return [contact for key, contact in contacts.items() if key.startswith(prefix)]
+
+
+async def get_contacts_by_name(name):
+    contacts = await get_contacts(mc)
+    return [contact for contact in contacts.values() if contact["adv_name"] == name]
 
 
 payload_keys = [
@@ -58,7 +80,8 @@ async def handle_new_contact(event):
 
 
 async def handle_contact_msg_recv(event):
-    contact = await mc.get_contact_by_key_prefix(event.payload["pubkey_prefix"])
+    contacts = await get_contacts_by_prefix(event.payload["pubkey_prefix"])
+    contact = contacts[0] if len(contacts) > 0 else {}
     try:
         event.payload["user"] = contact["adv_name"]
     except:
@@ -70,7 +93,8 @@ async def handle_contact_msg_recv(event):
 
 async def handle_channel_msg_recv(event):
     event.payload["user"] = event.payload["text"].split(":", 1)[0].strip()
-    contact = await mc.get_contact_by_name(event.payload["user"])
+    contacts = await get_contacts_by_name(event.payload["user"])
+    contact = contacts[0] if len(contacts) > 0 else {}
     event.payload["message"] = event.payload["text"].split(":", 1)[1].strip()
     event = await _add_contact_to_event(event, contact)
     await _handle_event(event, "CHANNEL_MSG_RECV")
@@ -127,8 +151,6 @@ async def check_es_ready(
 
 
 async def main():
-    global mc
-
     mc = await MeshCore.create_tcp(
         MC_HOST,
         MC_PORT,
@@ -136,10 +158,8 @@ async def main():
         max_reconnect_attempts=5,
     )
 
-    global es
     es = AsyncElasticsearch(
         ES_HOST,
-        # basic_auth=(ES_USER, ES_PASS),
     )
 
     if not await check_es_ready(es, index=ES_INDEX):
