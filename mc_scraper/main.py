@@ -48,8 +48,8 @@ async def handle_contact_msg_recv(event):
 
 
 async def handle_channel_msg_recv(event):
-    contact = mc.get_contact_by_name(event.payload["user"])
     event.payload["user"] = event.payload["text"].split(":", 1)[0].strip()
+    contact = mc.get_contact_by_name(event.payload["user"])
     event.payload["message"] = event.payload["text"].split(":", 1)[1].strip()
     event = _add_contact_to_event(event, contact)
     await _handle_event(event, "CHANNEL_MSG_RECV")
