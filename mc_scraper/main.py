@@ -15,9 +15,6 @@ ES_INDEX = os.getenv("ES_INDEX", "meshcore")
 MC_HOST = os.getenv("MC_HOST", "192.168.1.225")
 MC_PORT = int(os.getenv("MC_PORT", "5000"))
 
-mc: MeshCore
-es: AsyncElasticsearch
-
 
 # --- shared helper ---
 async def _handle_event(event, et: str):
@@ -151,6 +148,9 @@ async def check_es_ready(
 
 
 async def main():
+    global mc
+    global es
+
     mc = await MeshCore.create_tcp(
         MC_HOST,
         MC_PORT,
