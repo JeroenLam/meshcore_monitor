@@ -28,9 +28,27 @@ async def _handle_event(event, et: str):
     )
 
 
+payload_keys = [
+    "public_key",
+    "type",
+    "flags",
+    "out_path_len",
+    "out_path",
+    "adv_name",
+    "last_advert",
+    "adv_lat",
+    "adv_lon",
+    "lastmod",
+]
+
+
 async def _add_contact_to_event(event, contact):
-    for key in contact.keys():
-        event.payload[f"c_{key}"] = contact[key]
+    if contact != None:
+        for key in contact.keys():
+            event.payload[f"c_{key}"] = contact[key]
+    else:
+        for key in payload_keys:
+            event.payload[f"c_{key}"] = "unkown"
     return event
 
 
