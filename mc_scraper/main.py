@@ -61,7 +61,7 @@ async def handle_new_contact(event):
 
 
 async def handle_contact_msg_recv(event):
-    contacts = await get_contacts_by_prefix(event.payload["pubkey_prefix"])
+    contacts = await get_contacts_by_prefix(mc, event.payload["pubkey_prefix"])
     contact = contacts[0] if len(contacts) > 0 else {}
     try:
         event.payload["user"] = contact["adv_name"]
@@ -74,7 +74,7 @@ async def handle_contact_msg_recv(event):
 
 async def handle_channel_msg_recv(event):
     event.payload["user"] = event.payload["text"].split(":", 1)[0].strip()
-    contacts = await get_contacts_by_name(event.payload["user"])
+    contacts = await get_contacts_by_name(mc, event.payload["user"])
     contact = contacts[0] if len(contacts) > 0 else {}
     event.payload["message"] = event.payload["text"].split(":", 1)[1].strip()
     event = await _add_contact_to_event(event, contact)
@@ -175,7 +175,7 @@ async def main():
         logger.info(f"Device model: {result.payload['model']}")
 
     # Start Contact update task
-    asyncio.create_task(update_contacts_task())
+    asyncio.create_task(update_contacts_task(es, mc))
 
     try:
         logger.info("Entering waiting loop")

@@ -1,9 +1,12 @@
 import asyncio
+from elasticsearch import AsyncElasticsearch
 from meshcore import MeshCore, EventType
 from pydantic import BaseModel
 from enum import Enum
 from datetime import datetime
-from main import mc, es, ES_INDEX
+import os
+
+ES_INDEX = os.getenv("ES_INDEX", "meshcore")
 
 
 class DeviceType(Enum):
@@ -56,7 +59,7 @@ class Contact(BaseModel):
         }
 
 
-async def get_contacts_obj() -> list[Contact]:
+async def get_contacts_obj(mc: MeshCore) -> list[Contact]:
     # Get your contacts
     result = await mc.commands.get_contacts()
     if result.type == EventType.ERROR:
@@ -68,7 +71,7 @@ async def get_contacts_obj() -> list[Contact]:
     return [Contact(**contact) for contact in contacts.values()]
 
 
-async def get_contacts() -> dict[str, dict[str, str]]:
+async def get_contacts(mc: MeshCore) -> dict[str, dict[str, str]]:
     # Get your contacts
     result = await mc.commands.get_contacts()
     if result.type == EventType.ERROR:
@@ -77,17 +80,18 @@ async def get_contacts() -> dict[str, dict[str, str]]:
     return result.payload
 
 
-async def get_contacts_by_prefix(prefix):
-    contacts = await get_contacts()
+async def get_contacts_by_prefix(mc: MeshCore, prefix):
+    contacts = await get_contacts(mc)
     return [contact for key, contact in contacts.items() if key.startswith(prefix)]
 
 
-async def get_contacts_by_name(name):
-    contacts = await get_contacts()
+async def get_contacts_by_name(mc: MeshCore, name):
+    contacts = await get_contacts(mc)
     return [contact for contact in contacts.values() if contact["adv_name"] == name]
 
 
 async def upsert_contact(
+    es: AsyncElasticsearch,
     contact: Contact,
     index: str = "meshcore_contacts",
 ) -> None:
@@ -130,13 +134,13 @@ async def upsert_contact(
     )
 
 
-async def update_contacts_task():
+async def update_contacts_task(es: AsyncElasticsearch, mc: MeshCore):
     while True:
         try:
-            contacts = await get_contacts_obj()
+            contacts = await get_contacts_obj(mc)
 
             for contact in contacts:
-                await upsert_contact(contact, index=f"{ES_INDEX}_contacts")
+                await upsert_contact(es, contact, index=f"{ES_INDEX}_contacts")
         except Exception as e:
             print(f"Update contact task error: {e}")
 
