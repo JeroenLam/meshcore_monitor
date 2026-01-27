@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, timezone
 
 from parsing import parse_mc_packet
+from contacts import get_contacts_by_prefix, get_contacts_by_name, update_contacts_task
 
 logger = logging.getLogger(__name__)
 
@@ -28,25 +29,6 @@ async def _handle_event(event, et: str):
         index=ES_INDEX,
         document=data,
     )
-
-
-async def get_contacts(client: MeshCore) -> dict[str, dict[str, str]]:
-    # Get your contacts
-    result = await client.commands.get_contacts()
-    if result.type == EventType.ERROR:
-        raise Exception(f"Error getting contacts: {result.payload}")
-
-    return result.payload
-
-
-async def get_contacts_by_prefix(prefix):
-    contacts = await get_contacts(mc)
-    return [contact for key, contact in contacts.items() if key.startswith(prefix)]
-
-
-async def get_contacts_by_name(name):
-    contacts = await get_contacts(mc)
-    return [contact for contact in contacts.values() if contact["adv_name"] == name]
 
 
 payload_keys = [
@@ -192,9 +174,12 @@ async def main():
         logger.info(f"Device connected!")
         logger.info(f"Device model: {result.payload['model']}")
 
+    # Start Contact update task
+    asyncio.create_task(update_contacts_task())
+
     try:
-        # Keep the main program running
         logger.info("Entering waiting loop")
+        # Keep the main program running
         await asyncio.sleep(float("inf"))
     except asyncio.CancelledError:
         # Clean up when program ends
