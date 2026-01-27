@@ -5,6 +5,8 @@ from meshcore import MeshCore, EventType
 import logging
 from datetime import datetime, timezone
 
+from parsing import parse_mc_packet
+
 logger = logging.getLogger(__name__)
 
 ES_HOST = os.getenv("ES_HOST", "http://elasticsearch:9200")
@@ -122,6 +124,10 @@ async def handle_raw_data(event):
 
 
 async def handle_rx_log_data(event):
+    payload_hex = event.payload["payload"]
+    payload_b = bytes.fromhex(payload_hex)
+    fields = parse_mc_packet(payload_b)
+    event.payload = event.payload | fields
     await _handle_event(event, "RX_LOG_DATA")
 
 
