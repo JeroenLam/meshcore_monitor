@@ -1,0 +1,9 @@
+# GitHub Pages configuration for MeshCore Packet Visualizer
+title: MeshCore Packet Visualizer
+description: Parse and visualize MeshCore network packets
+theme: jekyll-theme-minimal
+
+# Exclude files from Jekyll processing
+exclude:
+  - .gitignore
+  - README.md

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MeshCore Packet Visualizer</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 MeshCore Packet Visualizer</h1>
+            <p>Parse and visualize MeshCore network packets</p>
+        </header>
+
+        <div class="input-section">
+            <h2>Packet Input</h2>
+            <div class="input-group">
+                <input type="text" id="hexInput"
+                    placeholder="Paste your hex packet here (e.g., 01 02 03 04 or 01020304)..." autocomplete="off" />
+                <button id="parseBtn">Parse Packet</button>
+            </div>
+            <p class="info-text">
+                Enter a hexadecimal string representing your packet. Spaces are optional.
+            </p>
+            <div id="errorMsg" class="error"></div>
+            <div id="successMsg" class="success"></div>
+        </div>
+
+        <div id="outputSection" class="output-section">
+            <h2>Packet Analysis</h2>
+            <div id="packetOutput" class="packet-visualization"></div>
+            <div id="hexDisplay" class="hex-display"></div>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+            <p>👈 Enter a hex packet above to get started</p>
+            <p style="font-size: 0.9em; color: #bbb">
+                Example: <code>01 0a 02 03 04 05</code>
+            </p>
+        </div>
+    </div>
+
+    <script src="parser.js"></script>
+    <script>
+        const hexInput = document.getElementById("hexInput");
+        const parseBtn = document.getElementById("parseBtn");
+        const errorMsg = document.getElementById("errorMsg");
+        const successMsg = document.getElementById("successMsg");
+        const outputSection = document.getElementById("outputSection");
+        const packetOutput = document.getElementById("packetOutput");
+        const hexDisplay = document.getElementById("hexDisplay");
+        const emptyState = document.getElementById("emptyState");
+
+        parseBtn.addEventListener("click", parsePacket);
+        hexInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                parsePacket();
+            }
+        });
+
+        function clearMessages() {
+            errorMsg.classList.remove("show");
+            successMsg.classList.remove("show");
+            errorMsg.textContent = "";
+            successMsg.textContent = "";
+        }
+
+        function showError(message) {
+            clearMessages();
+            errorMsg.textContent = "❌ " + message;
+            errorMsg.classList.add("show");
+        }
+
+        function showSuccess(message) {
+            clearMessages();
+            successMsg.textContent = "✅ " + message;
+            successMsg.classList.add("show");
+        }
+
+        function parsePacket() {
+            clearMessages();
+            const hexString = hexInput.value.trim();
+
+            if (!hexString) {
+                showError("Please enter a hex string");
+                return;
+            }
+
+            try {
+                // Convert hex string to bytes
+                const bytes = window.PacketParser.hexStringToBytes(hexString);
+
+                if (bytes.length === 0) {
+                    showError("Hex string is empty");
+                    return;
+                }
+
+                // Parse the packet
+                const parsed = window.PacketParser.parseMcPacket(bytes);
+
+                // Display results
+                displayResults(parsed, bytes);
+                showSuccess(`Packet parsed successfully (${bytes.length} bytes)`);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        function displayResults(parsed, bytes) {
+            packetOutput.innerHTML = "";
+            outputSection.classList.add("show");
+            emptyState.style.display = "none";
+
+            // Separate header and payload fields
+            const headerFields = {};
+            const payloadFields = {};
+
+            for (const [key, value] of Object.entries(parsed)) {
+                if (key.startsWith("header_")) {
+                    headerFields[key] = value;
+                } else {
+                    payloadFields[key] = value;
+                }
+            }
+
+            // Display header section
+            if (Object.keys(headerFields).length > 0) {
+                const headerDiv = document.createElement("div");
+                headerDiv.className = "header-section";
+                headerDiv.innerHTML = "<h3>📋 Header</h3>";
+
+                for (const [key, value] of Object.entries(headerFields)) {
+                    headerDiv.appendChild(createFieldElement(key, value));
+                }
+
+                packetOutput.appendChild(headerDiv);
+            }
+
+            // Display payload section
+            if (Object.keys(payloadFields).length > 0) {
+                const payloadDiv = document.createElement("div");
+                payloadDiv.className = "payload-section";
+                payloadDiv.innerHTML = "<h3>📦 Payload</h3>";
+
+                for (const [key, value] of Object.entries(payloadFields)) {
+                    payloadDiv.appendChild(createFieldElement(key, value));
+                }
+
+                packetOutput.appendChild(payloadDiv);
+            }
+
+            // Display hex visualization
+            displayHexVisualization(bytes, parsed);
+        }
+
+        function createFieldElement(key, value) {
+            const fieldGroup = document.createElement("div");
+            fieldGroup.className = "field-group";
+
+            const label = document.createElement("div");
+            label.className = "field-label";
+            label.textContent = formatLabel(key);
+
+            const valueDiv = document.createElement("div");
+            valueDiv.className = "field-value";
+
+            // Handle different value types
+            if (Array.isArray(value)) {
+                valueDiv.className += " array";
+                value.forEach((item) => {
+                    const span = document.createElement("span");
+                    span.textContent = item;
+                    valueDiv.appendChild(span);
+                });
+            } else if (typeof value === "boolean") {
+                valueDiv.textContent = value ? "Yes" : "No";
+            } else if (typeof value === "object" && value !== null) {
+                valueDiv.textContent = JSON.stringify(value, null, 2);
+            } else {
+                valueDiv.textContent = String(value);
+            }
+
+            fieldGroup.appendChild(label);
+            fieldGroup.appendChild(valueDiv);
+            return fieldGroup;
+        }
+
+        function formatLabel(key) {
+            return key
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (l) => l.toUpperCase());
+        }
+
+        function displayHexVisualization(bytes, parsed) {
+            let html = "<strong>Hex Dump:</strong><br>";
+
+            // Get header length from parsed data
+            const headerLen = parseInt(parsed.header_len) || 0;
+
+            bytes.forEach((byte, index) => {
+                const hexByte = byte.toString(16).padStart(2, "0").toUpperCase();
+                let className = "hex-byte";
+
+                if (index === 0) {
+                    className += " header";
+                } else if (index < headerLen) {
+                    className += " path";
+                } else {
+                    className += " payload";
+                }
+
+                html += `<span class="${className}">${hexByte}</span>`;
+
+                // Add line break every 16 bytes
+                if ((index + 1) % 16 === 0) {
+                    html += "<br>";
+                }
+            });
+
+            hexDisplay.innerHTML = html;
+        }
+
+        // Load example on page load
+        window.addEventListener("load", () => {
+            // You can set a default example here if desired
+            // hexInput.value = "01 0a 02 03 04 05";
+        });
+    </script>
+</body>
+
+</html>
