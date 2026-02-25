@@ -367,8 +367,25 @@
                 valueDiv.textContent = String(value);
             }
 
-            fieldGroup.appendChild(label);
-            fieldGroup.appendChild(valueDiv);
+            // Create a horizontal container for label and value
+            const contentWrapper = document.createElement("div");
+            contentWrapper.style.display = "flex";
+            contentWrapper.style.gap = "10px";
+            contentWrapper.style.alignItems = "flex-start";
+
+            const labelWrapper = document.createElement("div");
+            labelWrapper.style.flexShrink = "0";
+            labelWrapper.style.minWidth = "120px";
+            labelWrapper.appendChild(label);
+
+            const valueWrapper = document.createElement("div");
+            valueWrapper.style.flex = "1";
+            valueWrapper.style.minWidth = "0";
+            valueWrapper.appendChild(valueDiv);
+
+            contentWrapper.appendChild(labelWrapper);
+            contentWrapper.appendChild(valueWrapper);
+            fieldGroup.appendChild(contentWrapper);
 
             // Add hover listeners
             fieldGroup.addEventListener("mouseenter", () => highlightFieldBytes(key));
@@ -403,8 +420,8 @@
 
                 html += `<span class="${className}" data-byte-index="${index}">${hexByte}</span>`;
 
-                // Add line break every 16 bytes
-                if ((index + 1) % 16 === 0) {
+                // Add line break every 32 bytes
+                if ((index + 1) % 32 === 0) {
                     html += "<br>";
                 }
             });
