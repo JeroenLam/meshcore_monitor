@@ -117,6 +117,15 @@
             </p>
 
             <button id="bulkAnalyzeBtn">Analyze Packets</button>
+            <div id="bulkLoadingContainer" class="bulk-loading-container" style="display: none;">
+                <div class="bulk-loading-bar">
+                    <div id="bulkLoadingProgress" class="bulk-loading-progress"></div>
+                </div>
+                <div class="bulk-loading-text">
+                    <span id="bulkLoadingStatus">Processing packets...</span>
+                    <span id="bulkLoadingPercent">0%</span>
+                </div>
+            </div>
             <div id="bulkErrorMsg" class="error"></div>
             <div id="bulkSuccessMsg" class="success"></div>
         </div>
@@ -165,6 +174,10 @@
         const bulkEmptyState = document.getElementById("bulkEmptyState");
         const bulkFilterSection = document.getElementById("bulkFilterSection");
         const bulkHashFilters = document.getElementById("bulkHashFilters");
+        const bulkLoadingContainer = document.getElementById("bulkLoadingContainer");
+        const bulkLoadingProgress = document.getElementById("bulkLoadingProgress");
+        const bulkLoadingStatus = document.getElementById("bulkLoadingStatus");
+        const bulkLoadingPercent = document.getElementById("bulkLoadingPercent");
 
         // Store byte ranges for each field
         let fieldByteRanges = {};
@@ -315,6 +328,12 @@
                     wordList = wordListContent.split(/\r?\n/).filter(word => word.trim().length > 0);
                 }
 
+                // Show loading bar
+                bulkLoadingContainer.style.display = "block";
+                bulkLoadingProgress.style.width = "0%";
+                bulkLoadingPercent.textContent = "0%";
+                bulkLoadingStatus.textContent = "Processing packets...";
+
                 const results = [];
                 for (let i = 0; i < packetLines.length; i++) {
                     const hexPacket = packetLines[i].trim();
@@ -395,17 +414,27 @@
                             message: `Parse error: ${error.message}`
                         });
                     }
+
+                    // Update loading bar progress
+                    const progress = Math.round(((i + 1) / packetLines.length) * 100);
+                    bulkLoadingProgress.style.width = progress + "%";
+                    bulkLoadingPercent.textContent = progress + "%";
                 }
 
                 if (results.length === 0) {
                     showBulkError("No packets found in file");
+                    bulkLoadingContainer.style.display = "none";
                     return;
                 }
 
                 displayBulkResults(results);
                 showBulkSuccess(`Analyzed ${results.length} packets`);
+
+                // Hide loading bar after completion
+                bulkLoadingContainer.style.display = "none";
             } catch (error) {
                 showBulkError(`Analysis error: ${error.message}`);
+                bulkLoadingContainer.style.display = "none";
             }
         }
 
