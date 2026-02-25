@@ -123,6 +123,10 @@
 
         <div id="bulkOutputSection" class="output-section">
             <h2>Analysis Results</h2>
+            <div id="bulkFilterSection" style="display: none;">
+                <h3>Filter by Destination Hash</h3>
+                <div id="bulkHashFilters" class="hash-filters"></div>
+            </div>
             <div id="bulkResultsTable"></div>
         </div>
 
@@ -159,12 +163,18 @@
         const bulkOutputSection = document.getElementById("bulkOutputSection");
         const bulkResultsTable = document.getElementById("bulkResultsTable");
         const bulkEmptyState = document.getElementById("bulkEmptyState");
+        const bulkFilterSection = document.getElementById("bulkFilterSection");
+        const bulkHashFilters = document.getElementById("bulkHashFilters");
 
         // Store byte ranges for each field
         let fieldByteRanges = {};
         let currentBytes = [];
         let currentParsed = {};
         let decryptedData = null;
+
+        // Bulk analysis state
+        let allBulkResults = [];
+        let selectedHashes = new Set();
 
         // Tab switching functionality
         document.querySelectorAll('.tab-button').forEach(button => {
@@ -409,9 +419,56 @@
         }
 
         function displayBulkResults(results) {
+            // Store all results for filtering
+            allBulkResults = results;
+            selectedHashes = new Set();
+
+            // Extract unique destination hashes
+            const uniqueHashes = [...new Set(results.map(r => r.destinationHash).filter(h => h !== "-"))];
+
+            // Create filter checkboxes
+            bulkHashFilters.innerHTML = "";
+            if (uniqueHashes.length > 0) {
+                bulkFilterSection.style.display = "block";
+
+                uniqueHashes.forEach(hash => {
+                    const label = document.createElement("label");
+                    label.className = "hash-filter-label";
+
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.value = hash;
+                    checkbox.addEventListener("change", (e) => {
+                        if (e.target.checked) {
+                            selectedHashes.add(hash);
+                        } else {
+                            selectedHashes.delete(hash);
+                        }
+                        displayFilteredResults();
+                    });
+
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(hash));
+                    bulkHashFilters.appendChild(label);
+                });
+            } else {
+                bulkFilterSection.style.display = "none";
+            }
+
+            // Display all results initially
+            displayFilteredResults();
+        }
+
+        function displayFilteredResults() {
             bulkResultsTable.innerHTML = "";
             bulkEmptyState.style.display = "none";
             bulkOutputSection.classList.add("show");
+
+            // Filter results based on selected hashes
+            let filteredResults = allBulkResults;
+            if (selectedHashes.size > 0) {
+                filteredResults = allBulkResults.filter(r => selectedHashes.has(r.destinationHash));
+            }
 
             const table = document.createElement("table");
             table.className = "bulk-results-table";
@@ -422,7 +479,7 @@
             table.appendChild(headerRow);
 
             // Add result rows
-            results.forEach((result) => {
+            filteredResults.forEach((result) => {
                 const row = document.createElement("tr");
                 row.innerHTML = `
                     <td>${result.index}</td>
