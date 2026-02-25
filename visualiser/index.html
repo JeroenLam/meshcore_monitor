@@ -275,6 +275,8 @@
                 decryptedDiv.appendChild(createFieldElement("decrypted_timestamp", decryptedData.timestamp));
                 decryptedDiv.appendChild(createFieldElement("decrypted_flags", decryptedData.flags));
                 decryptedDiv.appendChild(createFieldElement("decrypted_message", decryptedData.message));
+                decryptedDiv.appendChild(createFieldElement("sender", decryptedData.sender));
+                decryptedDiv.appendChild(createFieldElement("text", decryptedData.text));
 
                 packetOutput.appendChild(decryptedDiv);
             }

@@ -582,11 +582,27 @@ function decryptGroupText(ciphertext, channelName) {
             messageStr += String.fromCharCode(messageBytes[i]);
         }
 
+        // Parse message format: <name>: <text>
+        const colonSpaceIndex = messageStr.indexOf(': ');
+
+        if (colonSpaceIndex === -1) {
+            // If format doesn't match, return error
+            return {
+                success: false,
+                error: 'Message does not follow the expected format <name>: <text>'
+            };
+        }
+
+        const senderName = messageStr.substring(0, colonSpaceIndex);
+        const messageText = messageStr.substring(colonSpaceIndex + 2);
+
         return {
             success: true,
             timestamp: timestampStr,
             flags: '0x' + flags.toString(16).padStart(2, '0'),
-            message: messageStr
+            message: messageStr,
+            sender: senderName,
+            text: messageText
         };
     } catch (error) {
         return {
