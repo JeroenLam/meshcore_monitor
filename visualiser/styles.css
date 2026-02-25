@@ -8,12 +8,13 @@ body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
-    padding: 20px;
+    padding: 20px 5px;
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
+    padding: 0 10px;
 }
 
 header {
@@ -41,19 +42,27 @@ header p {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
-.input-section h2 {
+.input-section h2,
+.input-section h3 {
     color: #333;
     margin-bottom: 15px;
     font-size: 1.3em;
 }
 
-.input-group {
+.input-section h3 {
+    font-size: 1.1em;
+    margin-top: 25px;
+}
+
+.input-group,
+.decryption-group {
     display: flex;
     gap: 10px;
     margin-bottom: 15px;
 }
 
-#hexInput {
+#hexInput,
+#channelNameInput {
     flex: 1;
     padding: 12px 15px;
     border: 2px solid #e0e0e0;
@@ -63,7 +72,8 @@ header p {
     transition: border-color 0.3s;
 }
 
-#hexInput:focus {
+#hexInput:focus,
+#channelNameInput:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -211,6 +221,18 @@ button:active {
 
 .payload-section h3 {
     color: #764ba2;
+    font-size: 1.1em;
+    margin-bottom: 15px;
+}
+
+.decrypted-section {
+    border-left: 4px solid #27ae60;
+    padding-left: 15px;
+    margin-top: 20px;
+}
+
+.decrypted-section h3 {
+    color: #27ae60;
     font-size: 1.1em;
     margin-bottom: 15px;
 }

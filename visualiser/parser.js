@@ -538,8 +538,67 @@ function bytesToInt32LE(bytes) {
     );
 }
 
+// Decryption functions
+function decryptGroupText(ciphertext, channelName) {
+    try {
+        // Derive key from channel name using SHA256
+        const hash = CryptoJS.SHA256(channelName);
+        // Take first 16 bytes (32 hex chars) for AES-128
+        const keyHex = hash.toString().substring(0, 32);
+        const key = CryptoJS.enc.Hex.parse(keyHex);
+
+        // Convert ciphertext hex string to CryptoJS format
+        const ciphertextWords = CryptoJS.enc.Hex.parse(ciphertext);
+
+        // Decrypt using AES-ECB
+        const decrypted = CryptoJS.AES.decrypt(
+            { ciphertext: ciphertextWords },
+            key,
+            {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.NoPadding
+            }
+        );
+
+        // Convert decrypted data to bytes
+        const decryptedHex = decrypted.toString(CryptoJS.enc.Hex);
+        const decryptedBytes = [];
+        for (let i = 0; i < decryptedHex.length; i += 2) {
+            decryptedBytes.push(parseInt(decryptedHex.substr(i, 2), 16));
+        }
+
+        // Extract timestamp (4 bytes, little-endian)
+        const timestamp = bytesToInt32LE(decryptedBytes.slice(0, 4));
+        const timestampStr = new Date(timestamp * 1000).toISOString();
+
+        // Extract flags (1 byte)
+        const flags = decryptedBytes[4];
+
+        // Extract message (remaining bytes, null-terminated)
+        const messageBytes = decryptedBytes.slice(5);
+        let messageStr = '';
+        for (let i = 0; i < messageBytes.length; i++) {
+            if (messageBytes[i] === 0) break;
+            messageStr += String.fromCharCode(messageBytes[i]);
+        }
+
+        return {
+            success: true,
+            timestamp: timestampStr,
+            flags: '0x' + flags.toString(16).padStart(2, '0'),
+            message: messageStr
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
 // Export for use in HTML
 window.PacketParser = {
     parseMcPacket,
     hexStringToBytes,
+    decryptGroupText,
 };

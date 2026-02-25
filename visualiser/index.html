@@ -39,6 +39,18 @@
             <p class="info-text">
                 Enter a hexadecimal string representing your packet. Spaces are optional.
             </p>
+
+            <h3>Decryption (Optional)</h3>
+            <div class="decryption-group">
+                <input type="text" id="channelNameInput"
+                    placeholder="Enter channel name (e.g., #tno) to decrypt group text messages..."
+                    autocomplete="off" />
+                <button id="decryptBtn">Decrypt</button>
+            </div>
+            <p class="info-text">
+                For GroupText payloads, enter the channel name to derive the decryption key.
+            </p>
+
             <div id="errorMsg" class="error"></div>
             <div id="successMsg" class="success"></div>
         </div>
@@ -58,10 +70,13 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="parser.js"></script>
     <script>
         const hexInput = document.getElementById("hexInput");
         const parseBtn = document.getElementById("parseBtn");
+        const channelNameInput = document.getElementById("channelNameInput");
+        const decryptBtn = document.getElementById("decryptBtn");
         const errorMsg = document.getElementById("errorMsg");
         const successMsg = document.getElementById("successMsg");
         const outputSection = document.getElementById("outputSection");
@@ -72,6 +87,8 @@
         // Store byte ranges for each field
         let fieldByteRanges = {};
         let currentBytes = [];
+        let currentParsed = {};
+        let decryptedData = null;
 
         parseBtn.addEventListener("click", parsePacket);
         hexInput.addEventListener("keypress", (e) => {
@@ -79,6 +96,44 @@
                 parsePacket();
             }
         });
+
+        decryptBtn.addEventListener("click", decryptPacket);
+        channelNameInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                decryptPacket();
+            }
+        });
+
+        async function decryptPacket() {
+            clearMessages();
+            const channelName = channelNameInput.value.trim();
+
+            if (!channelName) {
+                showError("Please enter a channel name");
+                return;
+            }
+
+            if (!currentParsed || currentParsed.payload_ciphertext === undefined) {
+                showError("Please parse a GroupText packet first");
+                return;
+            }
+
+            try {
+                const ciphertext = currentParsed.payload_ciphertext;
+                const result = await window.PacketParser.decryptGroupText(ciphertext, channelName);
+
+                if (result.success) {
+                    decryptedData = result;
+                    showSuccess("Decryption successful!");
+                    // Refresh the display to show decrypted data
+                    displayResults(currentParsed, currentBytes);
+                } else {
+                    showError(`Decryption failed: ${result.error}`);
+                }
+            } catch (error) {
+                showError(`Decryption error: ${error.message}`);
+            }
+        }
 
         function clearMessages() {
             errorMsg.classList.remove("show");
@@ -101,6 +156,7 @@
 
         function parsePacket() {
             clearMessages();
+            decryptedData = null;
             const hexString = hexInput.value.trim();
 
             if (!hexString) {
@@ -122,6 +178,7 @@
 
                 // Display results
                 currentBytes = bytes;
+                currentParsed = parsed;
                 displayResults(parsed, bytes);
                 showSuccess(`Packet parsed successfully (${bytes.length} bytes)`);
             } catch (error) {
@@ -206,6 +263,19 @@
                 }
 
                 packetOutput.appendChild(payloadDiv);
+            }
+
+            // Display decrypted section if available
+            if (decryptedData && decryptedData.success) {
+                const decryptedDiv = document.createElement("div");
+                decryptedDiv.className = "decrypted-section";
+                decryptedDiv.innerHTML = "<h3>🔓 Decrypted Data</h3>";
+
+                decryptedDiv.appendChild(createFieldElement("decrypted_timestamp", decryptedData.timestamp));
+                decryptedDiv.appendChild(createFieldElement("decrypted_flags", decryptedData.flags));
+                decryptedDiv.appendChild(createFieldElement("decrypted_message", decryptedData.message));
+
+                packetOutput.appendChild(decryptedDiv);
             }
 
             // Display hex visualization
