@@ -114,13 +114,13 @@
                 return;
             }
 
-            if (!currentParsed || currentParsed.payload_ciphertext === undefined) {
+            if (!currentParsed || currentParsed.ciphertext === undefined) {
                 showError("Please parse a GroupText packet first");
                 return;
             }
 
             try {
-                const ciphertext = currentParsed.payload_ciphertext;
+                const ciphertext = currentParsed.ciphertext;
                 const result = await window.PacketParser.decryptGroupText(ciphertext, channelName);
 
                 if (result.success) {
@@ -272,9 +272,9 @@
                 decryptedDiv.className = "decrypted-section";
                 decryptedDiv.innerHTML = "<h3>🔓 Decrypted Data</h3>";
 
-                decryptedDiv.appendChild(createFieldElement("decrypted_timestamp", decryptedData.timestamp));
-                decryptedDiv.appendChild(createFieldElement("decrypted_flags", decryptedData.flags));
-                decryptedDiv.appendChild(createFieldElement("decrypted_message", decryptedData.message));
+                decryptedDiv.appendChild(createFieldElement("timestamp", decryptedData.timestamp));
+                decryptedDiv.appendChild(createFieldElement("flags", decryptedData.flags));
+                decryptedDiv.appendChild(createFieldElement("message", decryptedData.message));
                 decryptedDiv.appendChild(createFieldElement("sender", decryptedData.sender));
                 decryptedDiv.appendChild(createFieldElement("text", decryptedData.text));
 

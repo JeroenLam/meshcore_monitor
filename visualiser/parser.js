@@ -182,17 +182,17 @@ function parsePlainTextMessage(payload) {
     const message = bytesToString(payload.slice(bytesParsed));
 
     const ret = {
-        payload_destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
-        payload_source_hash: "0x" + sourceHash.toString(16).padStart(2, "0"),
-        payload_cipher_mac: bytesToHex(cipherMac),
-        payload_timestamp: timestamp,
-        payload_txt_type: txtType,
-        payload_attempt: attempt,
-        payload_message: message,
+        destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
+        source_hash: "0x" + sourceHash.toString(16).padStart(2, "0"),
+        cipher_mac: bytesToHex(cipherMac),
+        timestamp: timestamp,
+        txt_type: txtType,
+        attempt: attempt,
+        message: message,
     };
 
     if (txtType === "signed_plain_text_message") {
-        ret.payload_signature = signature;
+        ret.signature = signature;
     }
 
     return ret;
@@ -228,12 +228,12 @@ function parseRequest(payload) {
     const requestData = bytesToHex(payload.slice(bytesParsed));
 
     return {
-        payload_destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
-        payload_source_hash: "0x" + sourceHash.toString(16).padStart(2, "0"),
-        payload_cipher_mac: bytesToHex(cipherMac),
-        payload_timestamp: timestamp,
-        payload_request_type: requestType,
-        payload_request_data: requestData,
+        destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
+        source_hash: "0x" + sourceHash.toString(16).padStart(2, "0"),
+        cipher_mac: bytesToHex(cipherMac),
+        timestamp: timestamp,
+        request_type: requestType,
+        request_data: requestData,
     };
 }
 
@@ -252,11 +252,11 @@ function parseResponse(payload) {
     const content = bytesToHex(payload.slice(bytesParsed));
 
     return {
-        payload_destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
-        payload_source_hash: "0x" + sourceHash.toString(16).padStart(2, "0"),
-        payload_cipher_mac: bytesToHex(cipherMac),
-        payload_tag: bytesToHex(tag),
-        payload_content: content,
+        destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
+        source_hash: "0x" + sourceHash.toString(16).padStart(2, "0"),
+        cipher_mac: bytesToHex(cipherMac),
+        tag: bytesToHex(tag),
+        content: content,
     };
 }
 
@@ -268,10 +268,10 @@ function parseAck(payload) {
     const raw = bytesToHex(payload.slice(bytesParsed));
 
     const ret = {
-        payload_checksum: checksum,
+        checksum: checksum,
     };
     if (raw.length > 0) {
-        ret.payload_raw = raw;
+        ret.raw = raw;
     }
     return ret;
 }
@@ -291,10 +291,10 @@ function parseAdvertisement(payload) {
 
     const appdataF = parseAppdata(appdata);
     const payloadF = {
-        payload_public_key: publicKey,
-        payload_timestamp: timestamp,
-        payload_signature: signature,
-        payload_appdata: bytesToHex(appdata),
+        public_key: publicKey,
+        timestamp: timestamp,
+        signature: signature,
+        appdata: bytesToHex(appdata),
     };
 
     return { ...payloadF, ...appdataF };
@@ -342,18 +342,18 @@ function parseAppdata(appdata) {
     const name = bytesToString(appdata.slice(bytesParsed));
 
     return {
-        payload_appdata_flag_is_chat_node: isChatNode,
-        payload_appdata_flag_is_repeater: isRepeater,
-        payload_appdata_flag_is_room_server: isRoomServer,
-        payload_appdata_flag_is_sensor: isSensor,
-        payload_appdata_flag_has_location: hasLocation,
-        payload_appdata_flag_has_feature_1: hasFeature1,
-        payload_appdata_flag_has_feature_2: hasFeature2,
-        payload_appdata_latitude: latitude,
-        payload_appdata_longitude: longitude,
-        payload_appdata_feature_1: feature1,
-        payload_appdata_feature_2: feature2,
-        payload_appdata_name: name,
+        appdata_flag_is_chat_node: isChatNode,
+        appdata_flag_is_repeater: isRepeater,
+        appdata_flag_is_room_server: isRoomServer,
+        appdata_flag_is_sensor: isSensor,
+        appdata_flag_has_location: hasLocation,
+        appdata_flag_has_feature_1: hasFeature1,
+        appdata_flag_has_feature_2: hasFeature2,
+        appdata_latitude: latitude,
+        appdata_longitude: longitude,
+        appdata_feature_1: feature1,
+        appdata_feature_2: feature2,
+        appdata_name: name,
     };
 }
 
@@ -369,10 +369,10 @@ function parseAnonymousRequest(payload) {
     const ciphertext = bytesToHex(payload.slice(bytesParsed));
 
     return {
-        payload_destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
-        payload_public_key: publicKey,
-        payload_cipher_mac: cipherMac,
-        payload_ciphertext: ciphertext,
+        destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
+        public_key: publicKey,
+        cipher_mac: cipherMac,
+        ciphertext: ciphertext,
     };
 }
 
@@ -386,9 +386,9 @@ function parseGroupTextDataMessage(payload) {
     const ciphertext = bytesToHex(payload.slice(bytesParsed));
 
     return {
-        payload_destination_hash: "0x" + channelHash.toString(16).padStart(2, "0"),
-        payload_cipher_mac: cipherMac,
-        payload_ciphertext: ciphertext,
+        destination_hash: "0x" + channelHash.toString(16).padStart(2, "0"),
+        cipher_mac: cipherMac,
+        ciphertext: ciphertext,
     };
 }
 
@@ -414,13 +414,13 @@ function parseReturnPath(payload) {
     const extraData = bytesToHex(payload.slice(bytesParsed));
 
     return {
-        payload_destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
-        payload_source_hash: "0x" + sourceHash.toString(16).padStart(2, "0"),
-        payload_cipher_mac: cipherMac,
-        payload_path_len: pathLen,
-        payload_path: path,
-        payload_extra_type: PayloadTypeName[extraType] || `unknown: 0x${extraType.toString(16)}`,
-        payload_extra_data: extraData,
+        destination_hash: "0x" + destinationHash.toString(16).padStart(2, "0"),
+        source_hash: "0x" + sourceHash.toString(16).padStart(2, "0"),
+        cipher_mac: cipherMac,
+        path_len: pathLen,
+        path: path,
+        extra_type: PayloadTypeName[extraType] || `unknown: 0x${extraType.toString(16)}`,
+        extra_data: extraData,
     };
 }
 
@@ -442,11 +442,11 @@ function parseControlData(payload) {
         const since = bytesToHex(payload.slice(bytesParsed));
 
         return {
-            payload_flag_type: flagType,
-            payload_prefix_only: "0x" + prefixOnly.toString(16).padStart(2, "0"),
-            payload_type_filter: "0x" + typeFilter.toString(16).padStart(2, "0"),
-            payload_tag: tag,
-            payload_since: since,
+            flag_type: flagType,
+            prefix_only: "0x" + prefixOnly.toString(16).padStart(2, "0"),
+            type_filter: "0x" + typeFilter.toString(16).padStart(2, "0"),
+            tag: tag,
+            since: since,
         };
     } else if (flagTypeB === 0x09) {
         const flagType = "DISCOVER_RESP";
@@ -459,17 +459,17 @@ function parseControlData(payload) {
         const pubKey = bytesToHex(payload.slice(bytesParsed));
 
         return {
-            payload_flag_type: flagType,
-            payload_node_type: "0x" + nodeType.toString(16).padStart(2, "0"),
-            payload_snr: (snr / 4).toString(),
-            payload_tag: tag,
-            payload_pub_key: pubKey,
+            flag_type: flagType,
+            node_type: "0x" + nodeType.toString(16).padStart(2, "0"),
+            snr: (snr / 4).toString(),
+            tag: tag,
+            pub_key: pubKey,
         };
     }
 
     return {
-        payload_flag_type: "unknown",
-        payload_raw: bytesToHex(payload.slice(bytesParsed)),
+        flag_type: "unknown",
+        raw: bytesToHex(payload.slice(bytesParsed)),
     };
 }
 
@@ -602,7 +602,7 @@ function decryptGroupText(ciphertext, channelName) {
             flags: '0x' + flags.toString(16).padStart(2, '0'),
             message: messageStr,
             sender: senderName,
-            text: messageText
+            text: messageText,
         };
     } catch (error) {
         return {
