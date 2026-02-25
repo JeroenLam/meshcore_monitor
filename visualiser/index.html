@@ -42,13 +42,26 @@
             </p>
 
             <h3>Decryption (Optional)</h3>
+            <div class="decryption-method-selector">
+                <label>
+                    <input type="radio" name="decryptionMethod" value="channel" checked />
+                    Derive key from channel name
+                </label>
+                <label>
+                    <input type="radio" name="decryptionMethod" value="key" />
+                    Use provided decryption key
+                </label>
+            </div>
             <div class="decryption-group">
                 <input type="text" id="channelNameInput"
                     placeholder="Enter channel name (e.g., #test) to decrypt group text messages..."
                     autocomplete="off" />
+                <input type="text" id="decryptionKeyInput"
+                    placeholder="Enter decryption key (hex format, e.g., 0123456789abcdef0123456789abcdef)..."
+                    autocomplete="off" style="display: none;" />
                 <button id="decryptBtn">Decrypt</button>
             </div>
-            <p class="info-text">
+            <p class="info-text" id="decryptionMethodInfo">
                 For GroupText payloads, enter the channel name to derive the decryption key.
             </p>
 
@@ -77,6 +90,7 @@
         const hexInput = document.getElementById("hexInput");
         const parseBtn = document.getElementById("parseBtn");
         const channelNameInput = document.getElementById("channelNameInput");
+        const decryptionKeyInput = document.getElementById("decryptionKeyInput");
         const decryptBtn = document.getElementById("decryptBtn");
         const errorMsg = document.getElementById("errorMsg");
         const successMsg = document.getElementById("successMsg");
@@ -84,6 +98,7 @@
         const packetOutput = document.getElementById("packetOutput");
         const hexDisplay = document.getElementById("hexDisplay");
         const emptyState = document.getElementById("emptyState");
+        const decryptionMethodInfo = document.getElementById("decryptionMethodInfo");
 
         // Store byte ranges for each field
         let fieldByteRanges = {};
@@ -115,6 +130,7 @@
         function loadFromCookies() {
             const savedHexInput = getCookie("meshcore_hex_input");
             const savedChannelName = getCookie("meshcore_channel_name");
+            const savedDecryptionKey = getCookie("meshcore_decryption_key");
 
             if (savedHexInput) {
                 hexInput.value = savedHexInput;
@@ -122,12 +138,16 @@
             if (savedChannelName) {
                 channelNameInput.value = savedChannelName;
             }
+            if (savedDecryptionKey) {
+                decryptionKeyInput.value = savedDecryptionKey;
+            }
         }
 
         // Save values to cookies
         function saveToCookies() {
             setCookie("meshcore_hex_input", hexInput.value);
             setCookie("meshcore_channel_name", channelNameInput.value);
+            setCookie("meshcore_decryption_key", decryptionKeyInput.value);
         }
 
         parseBtn.addEventListener("click", parsePacket);
@@ -148,14 +168,33 @@
         channelNameInput.addEventListener("change", saveToCookies);
         channelNameInput.addEventListener("blur", saveToCookies);
 
+        decryptionKeyInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                decryptPacket();
+            }
+        });
+        decryptionKeyInput.addEventListener("change", saveToCookies);
+        decryptionKeyInput.addEventListener("blur", saveToCookies);
+
+        // Handle decryption method selection
+        document.querySelectorAll('input[name="decryptionMethod"]').forEach((radio) => {
+            radio.addEventListener("change", (e) => {
+                const method = e.target.value;
+                if (method === "channel") {
+                    channelNameInput.style.display = "block";
+                    decryptionKeyInput.style.display = "none";
+                    decryptionMethodInfo.textContent = "For GroupText payloads, enter the channel name to derive the decryption key.";
+                } else {
+                    channelNameInput.style.display = "none";
+                    decryptionKeyInput.style.display = "block";
+                    decryptionMethodInfo.textContent = "For GroupText payloads, enter the decryption key in hexadecimal format (32 characters for AES-128).";
+                }
+            });
+        });
+
         async function decryptPacket() {
             clearMessages();
-            const channelName = channelNameInput.value.trim();
-
-            if (!channelName) {
-                showError("Please enter a channel name");
-                return;
-            }
+            const decryptionMethod = document.querySelector('input[name="decryptionMethod"]:checked').value;
 
             if (!currentParsed || currentParsed.ciphertext === undefined) {
                 showError("Please parse a GroupText packet first");
@@ -164,7 +203,23 @@
 
             try {
                 const ciphertext = currentParsed.ciphertext;
-                const result = await window.PacketParser.decryptGroupText(ciphertext, channelName);
+                let result;
+
+                if (decryptionMethod === "channel") {
+                    const channelName = channelNameInput.value.trim();
+                    if (!channelName) {
+                        showError("Please enter a channel name");
+                        return;
+                    }
+                    result = await window.PacketParser.decryptGroupText(ciphertext, channelName);
+                } else {
+                    const decryptionKey = decryptionKeyInput.value.trim();
+                    if (!decryptionKey) {
+                        showError("Please enter a decryption key");
+                        return;
+                    }
+                    result = await window.PacketParser.decryptGroupTextWithKey(ciphertext, decryptionKey);
+                }
 
                 if (result.success) {
                     decryptedData = result;

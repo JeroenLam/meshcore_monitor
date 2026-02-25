@@ -612,9 +612,96 @@ function decryptGroupText(ciphertext, channelName) {
     }
 }
 
+// Decryption function with user-provided key
+function decryptGroupTextWithKey(ciphertext, keyHex) {
+    try {
+        // Validate key format
+        if (!/^[0-9a-fA-F]*$/.test(keyHex)) {
+            return {
+                success: false,
+                error: 'Decryption key must be in hexadecimal format'
+            };
+        }
+
+        // Validate key length (should be 32 hex chars for AES-128)
+        if (keyHex.length !== 32) {
+            return {
+                success: false,
+                error: 'Decryption key must be 32 hexadecimal characters (16 bytes for AES-128)'
+            };
+        }
+
+        const key = CryptoJS.enc.Hex.parse(keyHex);
+
+        // Convert ciphertext hex string to CryptoJS format
+        const ciphertextWords = CryptoJS.enc.Hex.parse(ciphertext);
+
+        // Decrypt using AES-ECB
+        const decrypted = CryptoJS.AES.decrypt(
+            { ciphertext: ciphertextWords },
+            key,
+            {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.NoPadding
+            }
+        );
+
+        // Convert decrypted data to bytes
+        const decryptedHex = decrypted.toString(CryptoJS.enc.Hex);
+        const decryptedBytes = [];
+        for (let i = 0; i < decryptedHex.length; i += 2) {
+            decryptedBytes.push(parseInt(decryptedHex.substr(i, 2), 16));
+        }
+
+        // Extract timestamp (4 bytes, little-endian)
+        const timestamp = bytesToInt32LE(decryptedBytes.slice(0, 4));
+        const timestampStr = new Date(timestamp * 1000).toISOString();
+
+        // Extract flags (1 byte)
+        const flags = decryptedBytes[4];
+
+        // Extract message (remaining bytes, null-terminated)
+        const messageBytes = decryptedBytes.slice(5);
+        let messageStr = '';
+        for (let i = 0; i < messageBytes.length; i++) {
+            if (messageBytes[i] === 0) break;
+            messageStr += String.fromCharCode(messageBytes[i]);
+        }
+
+        // Parse message format: <name>: <text>
+        const colonSpaceIndex = messageStr.indexOf(': ');
+
+        if (colonSpaceIndex === -1) {
+            // If format doesn't match, return error
+            return {
+                success: false,
+                error: 'Message does not follow the expected format <name>: <text>'
+            };
+        }
+
+        const senderName = messageStr.substring(0, colonSpaceIndex);
+        const messageText = messageStr.substring(colonSpaceIndex + 2);
+
+        return {
+            success: true,
+            timestamp: timestampStr,
+            flags: '0x' + flags.toString(16).padStart(2, '0'),
+            message: messageStr,
+            sender: senderName,
+            text: messageText,
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
 // Export for use in HTML
 window.PacketParser = {
     parseMcPacket,
     hexStringToBytes,
     decryptGroupText,
+    decryptGroupTextWithKey,
 };
