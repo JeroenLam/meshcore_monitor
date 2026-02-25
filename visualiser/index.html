@@ -51,6 +51,10 @@
                     <input type="radio" name="decryptionMethod" value="key" />
                     Use provided decryption key
                 </label>
+                <label>
+                    <input type="radio" name="decryptionMethod" value="wordlist" />
+                    Try word list
+                </label>
             </div>
             <div class="decryption-group">
                 <input type="text" id="channelNameInput"
@@ -59,12 +63,12 @@
                 <input type="text" id="decryptionKeyInput"
                     placeholder="Enter decryption key (hex format, e.g., 0123456789abcdef0123456789abcdef)..."
                     autocomplete="off" style="display: none;" />
+                <input type="file" id="wordListInput" accept=".txt" style="display: none;" />
                 <button id="decryptBtn">Decrypt</button>
             </div>
             <p class="info-text" id="decryptionMethodInfo">
                 For GroupText payloads, enter the channel name to derive the decryption key.
             </p>
-
             <div id="errorMsg" class="error"></div>
             <div id="successMsg" class="success"></div>
         </div>
@@ -91,6 +95,7 @@
         const parseBtn = document.getElementById("parseBtn");
         const channelNameInput = document.getElementById("channelNameInput");
         const decryptionKeyInput = document.getElementById("decryptionKeyInput");
+        const wordListInput = document.getElementById("wordListInput");
         const decryptBtn = document.getElementById("decryptBtn");
         const errorMsg = document.getElementById("errorMsg");
         const successMsg = document.getElementById("successMsg");
@@ -183,11 +188,18 @@
                 if (method === "channel") {
                     channelNameInput.style.display = "block";
                     decryptionKeyInput.style.display = "none";
+                    wordListInput.style.display = "none";
                     decryptionMethodInfo.textContent = "For GroupText payloads, enter the channel name to derive the decryption key.";
-                } else {
+                } else if (method === "key") {
                     channelNameInput.style.display = "none";
                     decryptionKeyInput.style.display = "block";
+                    wordListInput.style.display = "none";
                     decryptionMethodInfo.textContent = "For GroupText payloads, enter the decryption key in hexadecimal format (32 characters for AES-128).";
+                } else if (method === "wordlist") {
+                    channelNameInput.style.display = "none";
+                    decryptionKeyInput.style.display = "none";
+                    wordListInput.style.display = "block";
+                    decryptionMethodInfo.textContent = "Upload a word list file (.txt). Each word will be tried as a channel name (#word) to decrypt the packet.";
                 }
             });
         });
@@ -212,13 +224,21 @@
                         return;
                     }
                     result = await window.PacketParser.decryptGroupText(ciphertext, channelName);
-                } else {
+                } else if (decryptionMethod === "key") {
                     const decryptionKey = decryptionKeyInput.value.trim();
                     if (!decryptionKey) {
                         showError("Please enter a decryption key");
                         return;
                     }
                     result = await window.PacketParser.decryptGroupTextWithKey(ciphertext, decryptionKey);
+                } else if (decryptionMethod === "wordlist") {
+                    if (!wordListInput.files || wordListInput.files.length === 0) {
+                        showError("Please select a word list file");
+                        return;
+                    }
+                    const file = wordListInput.files[0];
+                    const wordList = await readWordListFile(file);
+                    result = await window.PacketParser.decryptWithWordList(ciphertext, wordList);
                 }
 
                 if (result.success) {
@@ -226,12 +246,31 @@
                     showSuccess("Decryption successful!");
                     // Refresh the display to show decrypted data
                     displayResults(currentParsed, currentBytes);
+                } else if (result.wordListResults) {
+                    // Word list results - display as table
+                    decryptedData = result;
+                    showSuccess(`Found ${result.wordListResults.length} valid decryptions`);
+                    displayResults(currentParsed, currentBytes);
                 } else {
                     showError(`Decryption failed: ${result.error}`);
                 }
             } catch (error) {
                 showError(`Decryption error: ${error.message}`);
             }
+        }
+
+        // Helper function to read word list file
+        async function readWordListFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const text = e.target.result;
+                    const words = text.split(/\r?\n/).filter(word => word.trim().length > 0);
+                    resolve(words);
+                };
+                reader.onerror = () => reject(new Error("Failed to read file"));
+                reader.readAsText(file);
+            });
         }
 
         function clearMessages() {
@@ -377,6 +416,37 @@
                 decryptedDiv.appendChild(createFieldElement("text", decryptedData.text));
 
                 packetOutput.appendChild(decryptedDiv);
+            }
+
+            // Display word list results if available
+            if (decryptedData && decryptedData.wordListResults && decryptedData.wordListResults.length > 0) {
+                const wordListDiv = document.createElement("div");
+                wordListDiv.className = "wordlist-results-section";
+                wordListDiv.innerHTML = "<h3>📋 Word List Decryption Results</h3>";
+
+                // Create table
+                const table = document.createElement("table");
+                table.className = "wordlist-results-table";
+
+                // Create header row
+                const headerRow = document.createElement("tr");
+                headerRow.innerHTML = "<th>Word</th><th>Timestamp</th><th>Sender</th><th>Message</th>";
+                table.appendChild(headerRow);
+
+                // Add result rows
+                decryptedData.wordListResults.forEach((result) => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${result.word}</td>
+                        <td>${result.timestamp}</td>
+                        <td>${result.sender}</td>
+                        <td>${result.text}</td>
+                    `;
+                    table.appendChild(row);
+                });
+
+                wordListDiv.appendChild(table);
+                packetOutput.appendChild(wordListDiv);
             }
 
             // Display hex visualization

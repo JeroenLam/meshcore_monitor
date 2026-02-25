@@ -698,10 +698,55 @@ function decryptGroupTextWithKey(ciphertext, keyHex) {
     }
 }
 
+// Decryption function with word list
+function decryptWithWordList(ciphertext, wordList) {
+    try {
+        const results = [];
+
+        for (const word of wordList) {
+            const trimmedWord = word.trim();
+            if (!trimmedWord) continue;
+
+            // Try with #word format
+            const channelName = "#" + trimmedWord;
+            const result = decryptGroupText(ciphertext, channelName);
+
+            if (result.success) {
+                results.push({
+                    word: trimmedWord,
+                    timestamp: result.timestamp,
+                    flags: result.flags,
+                    message: result.message,
+                    sender: result.sender,
+                    text: result.text,
+                });
+            }
+        }
+
+        if (results.length === 0) {
+            return {
+                success: false,
+                error: 'No valid decryptions found with the provided word list'
+            };
+        }
+
+        return {
+            success: false,
+            wordListResults: results
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
 // Export for use in HTML
 window.PacketParser = {
     parseMcPacket,
     hexStringToBytes,
     decryptGroupText,
     decryptGroupTextWithKey,
+    decryptWithWordList,
 };
