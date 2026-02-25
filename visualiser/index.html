@@ -397,7 +397,9 @@
         }
 
         function formatLabel(key) {
-            return key
+            // Remove header_ prefix if present
+            let label = key.startsWith("header_") ? key.substring(7) : key;
+            return label
                 .replace(/_/g, " ")
                 .replace(/\b\w/g, (l) => l.toUpperCase());
         }
