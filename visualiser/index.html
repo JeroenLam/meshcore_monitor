@@ -6,6 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MeshCore Packet Visualizer</title>
     <link rel="stylesheet" href="styles.css" />
+    <style>
+        .hex-byte.highlighted {
+            background-color: #ffff00 !important;
+            color: #000 !important;
+            font-weight: bold;
+            box-shadow: 0 0 8px rgba(255, 255, 0, 0.8);
+        }
+
+        .field-group.highlighted {
+            background: #fffacd !important;
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.6) !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -53,6 +67,10 @@
         const packetOutput = document.getElementById("packetOutput");
         const hexDisplay = document.getElementById("hexDisplay");
         const emptyState = document.getElementById("emptyState");
+
+        // Store byte ranges for each field
+        let fieldByteRanges = {};
+        let currentBytes = [];
 
         parseBtn.addEventListener("click", parsePacket);
         hexInput.addEventListener("keypress", (e) => {
@@ -102,6 +120,7 @@
                 const parsed = window.PacketParser.parseMcPacket(bytes);
 
                 // Display results
+                currentBytes = bytes;
                 displayResults(parsed, bytes);
                 showSuccess(`Packet parsed successfully (${bytes.length} bytes)`);
             } catch (error) {
@@ -113,6 +132,7 @@
             packetOutput.innerHTML = "";
             outputSection.classList.add("show");
             emptyState.style.display = "none";
+            fieldByteRanges = {};
 
             // Separate header and payload fields
             const headerFields = {};
@@ -125,6 +145,41 @@
                     payloadFields[key] = value;
                 }
             }
+
+            // Calculate byte ranges for header fields
+            let byteIndex = 0;
+
+            // First byte is header
+            fieldByteRanges["header_route_type"] = [0, 0];
+            fieldByteRanges["header_payload_type"] = [0, 0];
+            fieldByteRanges["header_payload_version"] = [0, 0];
+            byteIndex = 1;
+
+            // Transport codes (if present)
+            const routeType = parsed.header_route_type;
+            if (routeType === "ROUTE_TYPE_TRANSPORT_FLOOD" || routeType === "ROUTE_TYPE_TRANSPORT_DIRECT") {
+                fieldByteRanges["header_transport_codes"] = [byteIndex, byteIndex + 3];
+                byteIndex += 4;
+            }
+
+            // Path length
+            fieldByteRanges["header_path_len"] = [byteIndex, byteIndex];
+            const pathLen = parseInt(parsed.header_path_len) || 0;
+            byteIndex += 1;
+
+            // Path
+            if (pathLen > 0) {
+                fieldByteRanges["header_path"] = [byteIndex, byteIndex + pathLen - 1];
+                byteIndex += pathLen;
+            }
+
+            // Payload starts after header
+            const headerLen = parseInt(parsed.header_len) || byteIndex;
+            const payloadStartIndex = headerLen;
+            const payloadBytes = bytes.slice(payloadStartIndex);
+
+            // Calculate payload field byte ranges based on field content
+            calculatePayloadFieldRanges(payloadFields, payloadBytes, payloadStartIndex);
 
             // Display header section
             if (Object.keys(headerFields).length > 0) {
@@ -156,9 +211,66 @@
             displayHexVisualization(bytes, parsed);
         }
 
+        function calculatePayloadFieldRanges(payloadFields, payloadBytes, payloadStartIndex) {
+            // Estimate byte ranges for payload fields based on their content
+            let currentByteOffset = 0;
+
+            for (const [key, value] of Object.entries(payloadFields)) {
+                let fieldSize = 0;
+
+                // Estimate field size based on value type and content
+                if (Array.isArray(value)) {
+                    // Array fields (like paths) - each element is typically 1 byte
+                    fieldSize = value.length;
+                } else if (typeof value === "string") {
+                    // String fields - estimate based on hex string length
+                    if (value.startsWith("0x")) {
+                        // Hex value
+                        fieldSize = (value.length - 2) / 2;
+                    } else if (/^[0-9a-f]+$/.test(value)) {
+                        // Hex string without 0x
+                        fieldSize = value.length / 2;
+                    } else {
+                        // Regular string - try to estimate
+                        fieldSize = value.length;
+                    }
+                } else if (typeof value === "number") {
+                    fieldSize = 1;
+                } else if (typeof value === "boolean") {
+                    fieldSize = 1;
+                } else if (typeof value === "object" && value !== null) {
+                    // Complex object - estimate
+                    fieldSize = JSON.stringify(value).length / 2;
+                }
+
+                // Ensure we don't exceed payload bounds
+                if (currentByteOffset + fieldSize > payloadBytes.length) {
+                    fieldSize = payloadBytes.length - currentByteOffset;
+                }
+
+                if (fieldSize > 0) {
+                    const startByte = payloadStartIndex + currentByteOffset;
+                    const endByte = payloadStartIndex + currentByteOffset + fieldSize - 1;
+                    fieldByteRanges[key] = [startByte, endByte];
+                    currentByteOffset += fieldSize;
+                }
+            }
+
+            // If we haven't covered all payload bytes, assign remaining to last field
+            if (currentByteOffset < payloadBytes.length) {
+                const lastKey = Object.keys(payloadFields)[Object.keys(payloadFields).length - 1];
+                if (lastKey) {
+                    const startByte = payloadStartIndex + currentByteOffset;
+                    const endByte = payloadStartIndex + payloadBytes.length - 1;
+                    fieldByteRanges[lastKey] = [startByte, endByte];
+                }
+            }
+        }
+
         function createFieldElement(key, value) {
             const fieldGroup = document.createElement("div");
             fieldGroup.className = "field-group";
+            fieldGroup.setAttribute("data-field-key", key);
 
             const label = document.createElement("div");
             label.className = "field-label";
@@ -185,6 +297,11 @@
 
             fieldGroup.appendChild(label);
             fieldGroup.appendChild(valueDiv);
+
+            // Add hover listeners
+            fieldGroup.addEventListener("mouseenter", () => highlightFieldBytes(key));
+            fieldGroup.addEventListener("mouseleave", clearHighlights);
+
             return fieldGroup;
         }
 
@@ -212,7 +329,7 @@
                     className += " payload";
                 }
 
-                html += `<span class="${className}">${hexByte}</span>`;
+                html += `<span class="${className}" data-byte-index="${index}">${hexByte}</span>`;
 
                 // Add line break every 16 bytes
                 if ((index + 1) % 16 === 0) {
@@ -221,6 +338,59 @@
             });
 
             hexDisplay.innerHTML = html;
+
+            // Add hover listeners to hex bytes
+            document.querySelectorAll(".hex-byte").forEach((hexByte) => {
+                hexByte.addEventListener("mouseenter", () => {
+                    const byteIndex = parseInt(hexByte.getAttribute("data-byte-index"));
+                    highlightFieldsForByte(byteIndex);
+                });
+                hexByte.addEventListener("mouseleave", clearHighlights);
+            });
+        }
+
+        function highlightFieldBytes(fieldKey) {
+            if (!fieldByteRanges[fieldKey]) return;
+
+            const [start, end] = fieldByteRanges[fieldKey];
+
+            // Highlight hex bytes
+            document.querySelectorAll(".hex-byte").forEach((hexByte) => {
+                const byteIndex = parseInt(hexByte.getAttribute("data-byte-index"));
+                if (byteIndex >= start && byteIndex <= end) {
+                    hexByte.classList.add("highlighted");
+                }
+            });
+
+            // Highlight field group
+            const fieldGroup = document.querySelector(`[data-field-key="${fieldKey}"]`);
+            if (fieldGroup) {
+                fieldGroup.classList.add("highlighted");
+            }
+        }
+
+        function highlightFieldsForByte(byteIndex) {
+            // Find which field this byte belongs to
+            for (const [fieldKey, [start, end]] of Object.entries(fieldByteRanges)) {
+                if (byteIndex >= start && byteIndex <= end) {
+                    highlightFieldBytes(fieldKey);
+                }
+            }
+
+            // Highlight the hex byte itself
+            const hexByte = document.querySelector(`[data-byte-index="${byteIndex}"]`);
+            if (hexByte) {
+                hexByte.classList.add("highlighted");
+            }
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll(".hex-byte.highlighted").forEach((el) => {
+                el.classList.remove("highlighted");
+            });
+            document.querySelectorAll(".field-group.highlighted").forEach((el) => {
+                el.classList.remove("highlighted");
+            });
         }
 
         // Load example on page load
