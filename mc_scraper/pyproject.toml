@@ -8,4 +8,5 @@ dependencies = [
     "elasticsearch[async]>=9.2.1",
     "meshcore>=2.2.5",
     "pydantic>=2.12.5",
+    "pycryptodome>=3.20.0",
 ]
