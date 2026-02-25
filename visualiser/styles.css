@@ -4,6 +4,49 @@
     box-sizing: border-box;
 }
 
+/* Tab Navigation */
+.tab-navigation {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.tab-button {
+    padding: 10px 20px;
+    background: #f0f0f0;
+    color: #666;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px 4px 0 0;
+    margin-right: 5px;
+}
+
+.tab-button:hover {
+    color: #667eea;
+    background: #e8e8e8;
+    transform: none;
+    box-shadow: none;
+}
+
+.tab-button.active {
+    color: #667eea;
+    background: white;
+    border-bottom-color: #667eea;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
 body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -278,6 +321,33 @@ button:active {
 }
 
 .wordlist-results-table tr:hover {
+    background: #f9f9f9;
+}
+
+.bulk-results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8em;
+    margin-top: 10px;
+}
+
+.bulk-results-table th {
+    background: #f0f0f0;
+    color: #333;
+    padding: 8px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.bulk-results-table td {
+    padding: 8px;
+    border-bottom: 1px solid #e0e0e0;
+    word-break: break-word;
+    max-width: 200px;
+}
+
+.bulk-results-table tr:hover {
     background: #f9f9f9;
 }
 

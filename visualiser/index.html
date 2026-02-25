@@ -29,68 +29,113 @@
             <p>Parse and visualize MeshCore network packets</p>
         </header>
 
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="packet-inspection">📦 Packet Inspection</button>
+            <button class="tab-button" data-tab="bulk-analysis">📊 Bulk Analysis</button>
+        </div>
+
+        <!-- Packet Inspection Tab -->
+        <div id="packet-inspection" class="tab-content active">
+            <div class="input-section">
+                <h2>Packet Input</h2>
+                <div class="input-group">
+                    <input type="text" id="hexInput"
+                        placeholder="Paste your hex packet here (e.g., 150720dbea08a1ee13d9f70cb3f608b43972362ccb4aa8ff43171584867568863802f2494c55cd9ea024945d)..."
+                        autocomplete="off" />
+                    <button id="parseBtn">Parse Packet</button>
+                </div>
+                <p class="info-text">
+                    Enter a hexadecimal string representing your packet. Spaces are optional.
+                </p>
+
+                <h3>Decryption (Optional)</h3>
+                <div class="decryption-method-selector">
+                    <label>
+                        <input type="radio" name="decryptionMethod" value="channel" checked />
+                        Derive key from channel name
+                    </label>
+                    <label>
+                        <input type="radio" name="decryptionMethod" value="key" />
+                        Use provided decryption key
+                    </label>
+                    <label>
+                        <input type="radio" name="decryptionMethod" value="wordlist" />
+                        Try word list
+                    </label>
+                </div>
+                <div class="decryption-group">
+                    <input type="text" id="channelNameInput"
+                        placeholder="Enter channel name (e.g., #test) to decrypt group text messages..."
+                        autocomplete="off" />
+                    <input type="text" id="decryptionKeyInput"
+                        placeholder="Enter decryption key (hex format, e.g., 0123456789abcdef0123456789abcdef)..."
+                        autocomplete="off" style="display: none;" />
+                    <input type="file" id="wordListInput" accept=".txt" style="display: none;" />
+                    <button id="decryptBtn">Decrypt</button>
+                </div>
+                <p class="info-text" id="decryptionMethodInfo">
+                    For GroupText payloads, enter the channel name to derive the decryption key.
+                </p>
+                <div id="errorMsg" class="error"></div>
+                <div id="successMsg" class="success"></div>
+            </div>
+
+            <div id="outputSection" class="output-section">
+                <h2>Packet Analysis</h2>
+                <div id="hexDisplay" class="hex-display"></div>
+                <br>
+                <div id="packetOutput" class="packet-visualization"></div>
+            </div>
+
+            <div id="emptyState" class="empty-state">
+                <p>👈 Enter a hex packet above to get started</p>
+                <p style="font-size: 0.9em; color: #bbb">
+                    Example: <code>01 0a 02 03 04 05</code>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Analysis Tab -->
+    <div id="bulk-analysis" class="tab-content">
         <div class="input-section">
-            <h2>Packet Input</h2>
+            <h2>Bulk Packet Analysis</h2>
             <div class="input-group">
-                <input type="text" id="hexInput"
-                    placeholder="Paste your hex packet here (e.g., 150720dbea08a1ee13d9f70cb3f608b43972362ccb4aa8ff43171584867568863802f2494c55cd9ea024945d)..."
-                    autocomplete="off" />
-                <button id="parseBtn">Parse Packet</button>
+                <input type="file" id="bulkPacketsInput" accept=".txt" placeholder="Select packets file" />
             </div>
             <p class="info-text">
-                Enter a hexadecimal string representing your packet. Spaces are optional.
+                Upload a text file with one hex packet per line.
             </p>
 
-            <h3>Decryption (Optional)</h3>
-            <div class="decryption-method-selector">
-                <label>
-                    <input type="radio" name="decryptionMethod" value="channel" checked />
-                    Derive key from channel name
-                </label>
-                <label>
-                    <input type="radio" name="decryptionMethod" value="key" />
-                    Use provided decryption key
-                </label>
-                <label>
-                    <input type="radio" name="decryptionMethod" value="wordlist" />
-                    Try word list
-                </label>
+            <h3>Word List (Optional)</h3>
+            <div class="input-group">
+                <input type="file" id="bulkWordListInput" accept=".txt" placeholder="Select word list file" />
             </div>
-            <div class="decryption-group">
-                <input type="text" id="channelNameInput"
-                    placeholder="Enter channel name (e.g., #test) to decrypt group text messages..."
-                    autocomplete="off" />
-                <input type="text" id="decryptionKeyInput"
-                    placeholder="Enter decryption key (hex format, e.g., 0123456789abcdef0123456789abcdef)..."
-                    autocomplete="off" style="display: none;" />
-                <input type="file" id="wordListInput" accept=".txt" style="display: none;" />
-                <button id="decryptBtn">Decrypt</button>
-            </div>
-            <p class="info-text" id="decryptionMethodInfo">
-                For GroupText payloads, enter the channel name to derive the decryption key.
+            <p class="info-text">
+                Upload a text file with one word per line to decrypt group messages.
             </p>
-            <div id="errorMsg" class="error"></div>
-            <div id="successMsg" class="success"></div>
+
+            <button id="bulkAnalyzeBtn">Analyze Packets</button>
+            <div id="bulkErrorMsg" class="error"></div>
+            <div id="bulkSuccessMsg" class="success"></div>
         </div>
 
-        <div id="outputSection" class="output-section">
-            <h2>Packet Analysis</h2>
-            <div id="hexDisplay" class="hex-display"></div>
-            <br>
-            <div id="packetOutput" class="packet-visualization"></div>
+        <div id="bulkOutputSection" class="output-section">
+            <h2>Analysis Results</h2>
+            <div id="bulkResultsTable"></div>
         </div>
 
-        <div id="emptyState" class="empty-state">
-            <p>👈 Enter a hex packet above to get started</p>
-            <p style="font-size: 0.9em; color: #bbb">
-                Example: <code>01 0a 02 03 04 05</code>
-            </p>
+        <div id="bulkEmptyState" class="empty-state">
+            <p>👈 Upload packet and word list files above to get started</p>
         </div>
+    </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="parser.js"></script>
     <script>
+        // Packet Inspection Tab Elements
         const hexInput = document.getElementById("hexInput");
         const parseBtn = document.getElementById("parseBtn");
         const channelNameInput = document.getElementById("channelNameInput");
@@ -105,11 +150,44 @@
         const emptyState = document.getElementById("emptyState");
         const decryptionMethodInfo = document.getElementById("decryptionMethodInfo");
 
+        // Bulk Analysis Tab Elements
+        const bulkPacketsInput = document.getElementById("bulkPacketsInput");
+        const bulkWordListInput = document.getElementById("bulkWordListInput");
+        const bulkAnalyzeBtn = document.getElementById("bulkAnalyzeBtn");
+        const bulkErrorMsg = document.getElementById("bulkErrorMsg");
+        const bulkSuccessMsg = document.getElementById("bulkSuccessMsg");
+        const bulkOutputSection = document.getElementById("bulkOutputSection");
+        const bulkResultsTable = document.getElementById("bulkResultsTable");
+        const bulkEmptyState = document.getElementById("bulkEmptyState");
+
         // Store byte ranges for each field
         let fieldByteRanges = {};
         let currentBytes = [];
         let currentParsed = {};
         let decryptedData = null;
+
+        // Tab switching functionality
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const tabName = e.target.getAttribute('data-tab');
+                switchTab(tabName);
+            });
+        });
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            // Add active class to clicked button
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        }
 
         // Cookie utility functions
         function setCookie(name, value, days = 365) {
@@ -203,6 +281,183 @@
                 }
             });
         });
+
+        // Bulk analysis event listener
+        bulkAnalyzeBtn.addEventListener("click", bulkAnalyzePackets);
+
+        async function bulkAnalyzePackets() {
+            clearBulkMessages();
+
+            if (!bulkPacketsInput.files || bulkPacketsInput.files.length === 0) {
+                showBulkError("Please select a packets file");
+                return;
+            }
+
+            try {
+                const packetsFile = bulkPacketsInput.files[0];
+                const packets = await readFile(packetsFile);
+                const packetLines = packets.split(/\r?\n/).filter(line => line.trim().length > 0);
+
+                let wordList = [];
+                if (bulkWordListInput.files && bulkWordListInput.files.length > 0) {
+                    const wordListFile = bulkWordListInput.files[0];
+                    const wordListContent = await readFile(wordListFile);
+                    wordList = wordListContent.split(/\r?\n/).filter(word => word.trim().length > 0);
+                }
+
+                const results = [];
+                for (let i = 0; i < packetLines.length; i++) {
+                    const hexPacket = packetLines[i].trim();
+                    try {
+                        const bytes = window.PacketParser.hexStringToBytes(hexPacket);
+                        const parsed = window.PacketParser.parseMcPacket(bytes);
+
+                        const payloadType = parsed.header_payload_type;
+                        const destinationHash = parsed.destination_hash || parsed.header_path?.[0] || "N/A";
+                        const cipherMac = parsed.cipher_mac || "-";
+
+                        // Try to decrypt if word list is provided and it's a group text payload
+                        if (wordList.length > 0 && (payloadType === "PAYLOAD_TYPE_GRP_TXT" || payloadType === "PAYLOAD_TYPE_GRP_DATA")) {
+                            const decryptResults = [];
+                            for (const word of wordList) {
+                                const channelName = "#" + word.trim();
+                                const decryptResult = await window.PacketParser.decryptGroupText(parsed.ciphertext, channelName);
+                                if (decryptResult.success) {
+                                    decryptResults.push({
+                                        word: word.trim(),
+                                        timestamp: decryptResult.timestamp,
+                                        sender: decryptResult.sender,
+                                        text: decryptResult.text
+                                    });
+                                }
+                            }
+
+                            if (decryptResults.length > 0) {
+                                decryptResults.forEach(dr => {
+                                    results.push({
+                                        index: i + 1,
+                                        payloadType: payloadType,
+                                        destinationHash: destinationHash,
+                                        cipherMac: cipherMac,
+                                        word: dr.word,
+                                        timestamp: dr.timestamp,
+                                        sender: dr.sender,
+                                        message: dr.text
+                                    });
+                                });
+                            } else {
+                                // Add packet to results even if no decryption found
+                                results.push({
+                                    index: i + 1,
+                                    payloadType: payloadType,
+                                    destinationHash: destinationHash,
+                                    cipherMac: cipherMac,
+                                    word: "-",
+                                    timestamp: "-",
+                                    sender: "-",
+                                    message: "-"
+                                });
+                            }
+                        } else {
+                            // Add packet to results if not a group text payload or no word list provided
+                            results.push({
+                                index: i + 1,
+                                payloadType: payloadType,
+                                destinationHash: destinationHash,
+                                cipherMac: cipherMac,
+                                word: "-",
+                                timestamp: "-",
+                                sender: "-",
+                                message: "-"
+                            });
+                        }
+                    } catch (error) {
+                        // Add packet to results even if parsing fails
+                        console.error(`Error parsing packet ${i + 1}:`, error);
+                        results.push({
+                            index: i + 1,
+                            payloadType: "ERROR",
+                            destinationHash: "-",
+                            cipherMac: "-",
+                            word: "-",
+                            timestamp: "-",
+                            sender: "-",
+                            message: `Parse error: ${error.message}`
+                        });
+                    }
+                }
+
+                if (results.length === 0) {
+                    showBulkError("No packets found in file");
+                    return;
+                }
+
+                displayBulkResults(results);
+                showBulkSuccess(`Analyzed ${results.length} packets`);
+            } catch (error) {
+                showBulkError(`Analysis error: ${error.message}`);
+            }
+        }
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => reject(new Error("Failed to read file"));
+                reader.readAsText(file);
+            });
+        }
+
+        function displayBulkResults(results) {
+            bulkResultsTable.innerHTML = "";
+            bulkEmptyState.style.display = "none";
+            bulkOutputSection.classList.add("show");
+
+            const table = document.createElement("table");
+            table.className = "bulk-results-table";
+
+            // Create header row
+            const headerRow = document.createElement("tr");
+            headerRow.innerHTML = "<th>Index</th><th>Payload Type</th><th>Destination Hash</th><th>Cipher MAC</th><th>Word</th><th>Timestamp</th><th>Sender</th><th>Message</th>";
+            table.appendChild(headerRow);
+
+            // Add result rows
+            results.forEach((result) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${result.index}</td>
+                    <td>${result.payloadType}</td>
+                    <td>${result.destinationHash}</td>
+                    <td>${result.cipherMac}</td>
+                    <td>${result.word}</td>
+                    <td>${result.timestamp}</td>
+                    <td>${result.sender}</td>
+                    <td>${result.message}</td>
+                `;
+                table.appendChild(row);
+            });
+
+            bulkResultsTable.appendChild(table);
+        }
+
+        function clearBulkMessages() {
+            bulkErrorMsg.classList.remove("show");
+            bulkSuccessMsg.classList.remove("show");
+            bulkErrorMsg.textContent = "";
+            bulkSuccessMsg.textContent = "";
+        }
+
+        function showBulkError(message) {
+            clearBulkMessages();
+            bulkErrorMsg.textContent = "❌ " + message;
+            bulkErrorMsg.classList.add("show");
+        }
+
+        function showBulkSuccess(message) {
+            clearBulkMessages();
+            bulkSuccessMsg.textContent = "✅ " + message;
+            bulkSuccessMsg.classList.add("show");
+        }
 
         async function decryptPacket() {
             clearMessages();
