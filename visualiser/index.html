@@ -91,12 +91,53 @@
         let currentParsed = {};
         let decryptedData = null;
 
+        // Cookie utility functions
+        function setCookie(name, value, days = 365) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                let cookie = cookies[i].trim();
+                if (cookie.indexOf(nameEQ) === 0) {
+                    return decodeURIComponent(cookie.substring(nameEQ.length));
+                }
+            }
+            return null;
+        }
+
+        // Load saved values from cookies on page load
+        function loadFromCookies() {
+            const savedHexInput = getCookie("meshcore_hex_input");
+            const savedChannelName = getCookie("meshcore_channel_name");
+
+            if (savedHexInput) {
+                hexInput.value = savedHexInput;
+            }
+            if (savedChannelName) {
+                channelNameInput.value = savedChannelName;
+            }
+        }
+
+        // Save values to cookies
+        function saveToCookies() {
+            setCookie("meshcore_hex_input", hexInput.value);
+            setCookie("meshcore_channel_name", channelNameInput.value);
+        }
+
         parseBtn.addEventListener("click", parsePacket);
         hexInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter") {
                 parsePacket();
             }
         });
+        hexInput.addEventListener("change", saveToCookies);
+        hexInput.addEventListener("blur", saveToCookies);
 
         decryptBtn.addEventListener("click", decryptPacket);
         channelNameInput.addEventListener("keypress", (e) => {
@@ -104,6 +145,8 @@
                 decryptPacket();
             }
         });
+        channelNameInput.addEventListener("change", saveToCookies);
+        channelNameInput.addEventListener("blur", saveToCookies);
 
         async function decryptPacket() {
             clearMessages();
@@ -488,6 +531,8 @@
 
         // Load example on page load
         window.addEventListener("load", () => {
+            // Load saved values from cookies
+            loadFromCookies();
             // You can set a default example here if desired
             // hexInput.value = "01 0a 02 03 04 05";
         });
