@@ -507,6 +507,97 @@ button:active {
     font-weight: 600;
 }
 
+/* Collapsible Filter Styles */
+.filter-group {
+    margin-bottom: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.filter-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: #f9f9f9;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.filter-header:hover {
+    background: #f0f7ff;
+}
+
+.filter-header h3 {
+    margin: 0;
+    font-size: 0.95em;
+    color: #333;
+}
+
+.filter-toggle {
+    display: inline-block;
+    transition: transform 0.3s;
+    color: #667eea;
+    font-weight: bold;
+}
+
+.filter-header.collapsed .filter-toggle {
+    transform: rotate(-90deg);
+}
+
+.filter-content {
+    padding: 12px;
+    border-top: 1px solid #e0e0e0;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    max-height: 500px;
+    overflow-y: auto;
+    opacity: 1;
+}
+
+.filter-content.collapsed {
+    max-height: 0;
+    padding: 0;
+    border-top: none;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.word-filters,
+.sender-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.word-filter-label,
+.sender-filter-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: #333;
+    font-size: 0.85em;
+    padding: 6px 10px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.word-filter-label:hover,
+.sender-filter-label:hover {
+    background: #f0f7ff;
+    border-color: #667eea;
+}
+
+.word-filter-label input[type="checkbox"],
+.sender-filter-label input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
 @media (max-width: 768px) {
     header h1 {
         font-size: 1.4em;
