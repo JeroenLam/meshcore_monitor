@@ -132,7 +132,10 @@
         </div>
 
         <div id="bulkOutputSection" class="output-section">
-            <h2>Analysis Results</h2>
+            <div class="bulk-results-header">
+                <h2>Analysis Results</h2>
+                <button id="downloadCsvBtn" style="display: none;">📥 Download CSV</button>
+            </div>
             <div id="bulkFilterSection" style="display: none;">
                 <div class="filter-group">
                     <div class="filter-header" onclick="toggleFilter(this)">
@@ -186,6 +189,7 @@
         const bulkLoadingProgress = document.getElementById("bulkLoadingProgress");
         const bulkLoadingStatus = document.getElementById("bulkLoadingStatus");
         const bulkLoadingPercent = document.getElementById("bulkLoadingPercent");
+        const downloadCsvBtn = document.getElementById("downloadCsvBtn");
 
         // Store byte ranges for each field
         let fieldByteRanges = {};
@@ -322,6 +326,7 @@
 
         // Bulk analysis event listener
         bulkAnalyzeBtn.addEventListener("click", bulkAnalyzePackets);
+        downloadCsvBtn.addEventListener("click", downloadResultsAsCSV);
 
         async function bulkAnalyzePackets() {
             clearBulkMessages();
@@ -565,6 +570,68 @@
             });
 
             bulkResultsTable.appendChild(table);
+
+            // Show download button if there are results
+            if (filteredResults.length > 0) {
+                downloadCsvBtn.style.display = "block";
+            } else {
+                downloadCsvBtn.style.display = "none";
+            }
+        }
+
+        function downloadResultsAsCSV() {
+            // Get filtered results
+            let filteredResults = allBulkResults;
+            if (selectedHashes.size > 0) {
+                filteredResults = filteredResults.filter(r => selectedHashes.has(r.destinationHash));
+            }
+
+            if (filteredResults.length === 0) {
+                showBulkError("No results to download");
+                return;
+            }
+
+            // Define CSV headers
+            const headers = ["Index", "Payload Type", "Destination Hash", "Cipher MAC", "Word", "Timestamp", "Sender", "Message"];
+
+            // Escape CSV values (handle commas, quotes, and newlines)
+            const escapeCSV = (value) => {
+                if (value === null || value === undefined) {
+                    return "";
+                }
+                const stringValue = String(value);
+                if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
+                    return '"' + stringValue.replace(/"/g, '""') + '"';
+                }
+                return stringValue;
+            };
+
+            // Build CSV content
+            let csvContent = headers.map(escapeCSV).join(",") + "\n";
+            filteredResults.forEach((result) => {
+                const row = [
+                    result.index,
+                    result.payloadType,
+                    result.destinationHash,
+                    result.cipherMac,
+                    result.word,
+                    result.timestamp,
+                    result.sender,
+                    result.message
+                ];
+                csvContent += row.map(escapeCSV).join(",") + "\n";
+            });
+
+            // Create blob and download
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `bulk-analysis-results-${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = "hidden";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function clearBulkMessages() {
